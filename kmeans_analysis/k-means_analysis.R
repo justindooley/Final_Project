@@ -37,13 +37,31 @@ str(wines)
 # Examine the statistical distribution
 summary(wines)
 
-# Create a histogram for each attribute
+# Normalize the data so we get a standard deviation of 1
+# and a mean of 0 
+scaled_wines <- scale(wines)
+
+# See what man hath wrot 
+colMeans(scaled_wines)  
+apply(scaled_wines, 2, sd)
+head(scaled_wines, n=10)
+
+# Create a histogram for each attribute 
 wines %>%
   gather(Attributes, value, 1:13) %>%
   ggplot(aes(x=value)) +
   geom_histogram(fill="purple", colour="black") +
   facet_wrap(~Attributes, scales="free_x") +
   labs(x="Values", y="Frequency") 
+
+# Somewhere, mistakes were made
+# scaled_wines is not a dataframe somehow
+# scaled_wines %>%
+#  gather(Attributes, value, 1:13) %>%
+#  ggplot(aes(x=value)) +
+#  geom_histogram(fill="purple", colour="black") +
+#  facet_wrap(~Attributes, scales="free_x") +
+#  labs(x="Values", y="Frequency") 
 
 # Create a correlation matrix for each attribute
 corrplot(cor(wines), type="upper", method="ellipse", tl.cex=0.9)
