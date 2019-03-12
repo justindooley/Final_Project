@@ -104,7 +104,7 @@ wines_k5 <- kmeans(wines, centers=5)
 # Mean values of each cluster
 aggregate(wines, by=list(wines_k5$cluster), mean)
 
-# Clustering 
+# Pair-Wise Correlation 
 ggpairs(cbind(wines, Cluster=as.factor(wines$quality)),
         columns=1:13, aes(colour=Cluster, alpha=0.5),
         lower=list(continuous="points"),
