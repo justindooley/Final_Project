@@ -1,5 +1,5 @@
 # Extreme Gradient Boosting is a supervised machine learning model with
-# both a linear model solver and tree learning algorithms. 
+# both  a linear model solver and tree learning algorithms. 
 # So, what makes it fast is its capacity to do 
 # parallel computation on a single machine.
 

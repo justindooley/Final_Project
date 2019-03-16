@@ -13,11 +13,17 @@ library(corrplot)
 library(gridExtra)
 library(GGally)
 library(stats)
+library(ggplot2)
+library(fpc)
+library(cluster)
+
+# Set the seed for reproducibility
+set.seed(1002476)
 
 # Set the working directory
 getwd()
 path.expand("~/kmeans_analysis")
-setwd()
+setwd("~/kmeans_analysis")
 
 
 # Read the stats
@@ -37,6 +43,9 @@ str(wines)
 # Examine the statistical distribution
 summary(wines)
 
+# Standardize the variables
+wines <- scale(wines) 
+
 # Create a histogram for each attribute
 wines %>%
   gather(Attributes, value, 1:13) %>%
@@ -48,29 +57,26 @@ wines %>%
 # Create a correlation matrix for each attribute
 corrplot(cor(wines), type="upper", method="ellipse", tl.cex=0.9)
 
-## K-Means Execution
+# Graph Scatter of Data
+# Type versus Sulfur Dioxide
+ggplot(data = wines) + 
+  geom_point(mapping = aes(x = total_sulfur_dioxide, y = alcohol))
 
-# Execution of k-means with k=13
-set.seed(1002476) #Set the seed for reproducibility
+# Pair-Wise Correlation 
+ggpairs(cbind(wines, Cluster=as.factor(wines$quality)),
+        columns=1:13, aes(colour=Cluster, alpha=0.5),
+        lower=list(continuous="points"),
+        upper=list(continuous="blank"),
+        axisLabels="none", switch="both")
 
-# Create 10 clusters
-wines_k13_centers <-kmeans(wines, centers=13) 
-wines_k13_centers$centers # Display cluster centers
-table(wines_k13_centers$cluster) # Give a count of data points in each cluster
+# Determine the best k-means value 
 
-# Remove columns 1 and 13
-wines_k13 <-kmeans(wines[,-c(1,13)], centers=13) 
-wines_k13$centers # Display cluster centers
-table(wines_k13$cluster) # Give a count of data points in each cluster
-table(wines_k13_centers$cluster)
-
-# Run the algorithm for different values of k 
 bss <- numeric()
 wss <- numeric()
 
-set.seed(1002476)
-for(i in 1:13){
+for(i in 1:13) 
   
+{
   # For each k, calculate betweenss and tot.withinss
   bss[i] <- kmeans(wines, centers=i)$betweenss
   wss[i] <- kmeans(wines, centers=i)$tot.withinss
@@ -95,19 +101,50 @@ grid.arrange(p3, p4, ncol=2)
 # another cluster doesn’t partition data better
 # Choose k-value of 5
 
-## RESULTS
+# Testing and execution of k-means with k=10
+wines_10_centers <-kmeans(wines, centers=10) 
+wines_10_centers$centers # Display cluster centers
+table(wines_10_centers$cluster) # Give a count of data points in each cluster
 
-# Execution of k-means with k=5
-set.seed(1002476)
-wines_k5 <- kmeans(wines, centers=5)
+
+wines_10 <-kmeans(wines[,-c(13)], centers=10) 
+wines_10$centers # Display cluster centers
+table(wines_10$cluster) # Give a count of data points in each cluster
+table(wines_10_centers$cluster)
 
 # Mean values of each cluster
-aggregate(wines, by=list(wines_k5$cluster), mean)
+mean_value <- aggregate(wines, by=list(wines_10$cluster), mean)
+mean_value
+summary(mean_value)
 
-# Pair-Wise Correlation 
-ggpairs(cbind(wines, Cluster=as.factor(wines$quality)),
-        columns=1:13, aes(colour=Cluster, alpha=0.5),
-        lower=list(continuous="points"),
-        upper=list(continuous="blank"),
-        axisLabels="none", switch="both")
+## K-Means Execution for:
+# 2 (red or white wine)
+# 5 (best partition)
+# 10 (quality)
+
+# K-Means Cluster Analysis with k=2
+fit <- kmeans(wines, 2) # 2 cluster solution
+aggregate(wines, by=list(fit$cluster), FUN=mean) # get cluster means 
+wines_k2 <- data.frame(wines, fit$cluster) # append character assignment
+
+# Write results to a new CSV file to visualize in Tableau 
+write.csv(wines_k2, file = "wines_k2.csv")
+
+# K-Means Cluster Analysis with k=5
+fit <- kmeans(wines, 5) # 2 cluster solution
+aggregate(wines, by=list(fit$cluster), FUN=mean) # get cluster means 
+wines_k5 <- data.frame(wines, fit$cluster) # append character assignment
+
+# Write results to a new CSV file to visualize in Tableau 
+write.csv(wines_k5, file = "wines_k5.csv")
+
+# K-Means Cluster Analysis with k=10
+fit <- kmeans(wines, 10) # 2 cluster solution
+aggregate(wines, by=list(fit$cluster), FUN=mean) # get cluster means 
+wines_k10 <- data.frame(wines, fit$cluster) # append character assignment
+
+# Write results to a new CSV file to visualize in Tableau 
+write.csv(wines_k10, file = "wines_10.csv")
+
+
 
