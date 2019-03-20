@@ -16,6 +16,7 @@ library(stats)
 library(ggplot2)
 library(fpc)
 library(cluster)
+library(factoextra)
 
 # Set the seed for reproducibility
 set.seed(1002476)
@@ -131,7 +132,7 @@ wines_k2 <- data.frame(wines, fit$cluster) # append character assignment
 write.csv(wines_k2, file = "wines_k2.csv")
 
 # K-Means Cluster Analysis with k=5
-fit <- kmeans(wines, 5) # 2 cluster solution
+fit <- kmeans(wines, 5) # 5 cluster solution
 aggregate(wines, by=list(fit$cluster), FUN=mean) # get cluster means 
 wines_k5 <- data.frame(wines, fit$cluster) # append character assignment
 
@@ -139,12 +140,11 @@ wines_k5 <- data.frame(wines, fit$cluster) # append character assignment
 write.csv(wines_k5, file = "wines_k5.csv")
 
 # K-Means Cluster Analysis with k=10
-fit <- kmeans(wines, 10) # 2 cluster solution
+fit <- kmeans(wines, 10) # 10 cluster solution
 aggregate(wines, by=list(fit$cluster), FUN=mean) # get cluster means 
 wines_k10 <- data.frame(wines, fit$cluster) # append character assignment
 
 # Write results to a new CSV file to visualize in Tableau 
-write.csv(wines_k10, file = "wines_10.csv")
+write.csv(wines_k10, file = "wines_k10.csv")
 
-
-
+fviz_cluster(fit, data = wines)
