@@ -31,37 +31,59 @@ head(raw_data, n=10)
 # column into two factors: quality scores below (0) and above (1) a value of 
 # the median quality score (5). 
 
-factor_wines <- factor(raw_data$quality, labels = c("less than 5", 
-                                          "greater than or equal to 5"))
-factor_wines
-
-wines$quality <- factor(wines$quality)
+raw_data$quality <- factor(raw_data$quality, levels = c(0, 1))
 
 # Check if the variables are factors
-is.factor(factor_wines)
-contrasts(factor_wines)
+is.factor(raw_data$quality)
+# [1] TRUE
 
-# Split the data into train and test sets using the caret package
-# Partition the data into train and test sets (80/20)
-sample_size <- floor(0.80 * nrow(raw_data))
+# Check quality sampling imbalance
+table(raw_data$quality)
 
-train_index <- sample(seq_len(nrow(raw_data)), size = sample_size)
+#    0    1 
+#   246 6251 
 
-train <- raw_data[train_index, ]
-test <- raw_data[-train_index, ]
+# First split the data into train and test sets using the caret package
+# Partition the data into train and test sets (70/30)
+
+'%ni%' <- Negate('%in%')  # define 'not in' func
+options(scipen=999)  # prevents printing scientific notations.
+
+# Prep Training and Test data.
+trainDataIndex <- createDataPartition(raw_data$quality, p=0.7, list = F)  # 70% training data
+trainData <- raw_data[trainDataIndex, ]
+testData <- raw_data[-trainDataIndex, ]
+
+table(trainData$quality)
+#    0    1 
+#    173 4376 
+
+# In order to adjust for the high amount of mid-tier wines, we need to 
+# upsample the data. 
+
+# Up Sampling Code
+up_train <- upSample(x = trainData[, colnames(trainData) %ni% "quality"],
+                     y = trainData$quality)
+
+# Check to see the new numbers
+table(up_train$Class)
+
+# 0    1 
+# 4376 4376 
+
 
 # Build the logistic regression model
 
-model <- glm(quality ~ wine_type + fixed_acidity + volatile_acidity 
+model <- glm(Class ~ wine_type + fixed_acidity + volatile_acidity 
              + citric_acid + residual_sugar + chlorides + free_sulfur_dioxide 
              + total_sulfur_dioxide + density + pH + sulphates 
-             + alcohol, data = train, family = binomial(link="logit"))
+             + alcohol, data = up_train, family = binomial(link="logit"))
 
 # Predicted scores
-predicted <- plogis(predict(model, test)) 
+predicted <- plogis(predict(model, testData)) 
 
 # Determine the optimal cut-off point
-optCutOff <- optimalCutoff(test$quality, predicted)[1]
+optCutOff <- optimalCutoff(test$Class, predicted)[1]
 # optCutOff = 0.6799987
 
 # Summarize the findings
@@ -95,46 +117,46 @@ wald.test(b = coef(model), Sigma = vcov(model), Terms = 2:13)
 # Above, we briefly evaluated the fitting of the model, 
 # now test model by predicting y on a new set of data. 
 
-fitted.results <- predict(model, newdata = subset(test), type='response')
+fitted.results <- predict(model, newdata = subset(testData), type='response')
 fitted.results <- ifelse(fitted.results > 0.5,1,0)
 
-misClasificError <- mean(fitted.results != test$quality)
+misClasificError <- mean(fitted.results != testData$quality)
 print(paste('Accuracy', 1-misClasificError))
 
-# Accuracy = 0.960769230769231 = 96.54%
+# Accuracy 0.756160164271047 = 75.61%
 
 # Plot the ROC and AUC
-plotROC(test$quality, predicted)
-plotAUC(test$quality, predicted)
+plotROC(testData$quality, predicted)
+plotAUC(testData$quality, predicted)
 
 # Of all combinations of 1-0 pairs (actuals), concordance is the percentage
 # of pairs, whose scores of positives are greater than the scores of negatives. 
 # For a perfect model, this will be 100%. 
 # The higher the concordance, the better is the quality of model.
-Concordance(test$quality, predicted)
+Concordance(testData$quality, predicted)
 
-# Concordance = [1] 0.7348832 = ~73%
+# Concordance = [1] 0.7566393 = ~75%
 # Not that great of a fit 
 
-sensitivity(test$quality, predicted, threshold = optCutOff)
-# [1] 0.9984051
+sensitivity(testData$quality, predicted)
+# 76%
 
-specificity(test$quality, predicted, threshold = optCutOff)
-# [1] 0.1086957
+specificity(testData$quality, predicted)
+# [1] 0.6575342 = 65.75%
 
-confusionMatrix(test$quality, predicted, threshold = optCutOff)
+confusionMatrix(testData$quality, predicted)
 # The columns are actuals, while rows are predicted values
 
 #    0    1
-# 0  5    2
-# 1 41 1252
+# 0 48  450
+# 1 25 1425
 
 # Another way of calculating ROC and AUC
 
-ROC1 <- roc(test$quality, predicted)
+ROC1 <- roc(testData$quality, predicted)
 
 plot(ROC1, col = "blue")
 
 AUC1 <- auc(ROC1)
 
-# Area under the curve: 0.7107
+# Area under the curve: 0.7566
