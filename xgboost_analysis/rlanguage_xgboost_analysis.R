@@ -30,7 +30,7 @@ getwd()
 path.expand("~/kmeans_analysis")
 setwd()
 
-# Read the stats
+# Load the data 
 wines <- read.csv("input/combined_wine_binary.csv", header = TRUE)
 
 # View header
@@ -74,14 +74,17 @@ test <- wines[-train_index, ]
 setDT(train) 
 setDT(test)
 
-# Identify the label using one hot encoding 
-labels <- train$wine_type
-ts_label <- test$wine_type
+#using one hot encoding 
+labels <- train$quality 
+ts_label <- test$quality
+new_tr <- model.matrix(~.+0,data = train[,-c("quality"),with=F]) 
+new_ts <- model.matrix(~.+0,data = test[,-c("quality"),with=F])
 
-# Should I train the model to wine_type (a binary) or 
-# quality, which I would need to one-hot encode?
-new_tr <- model.matrix(~.+0,data = train[,-c("wine_type"), with=F]) 
-new_ts <- model.matrix(~.+0,data = test[,-c("wine_type"), with=F])
+#convert factor to numeric 
+labels <- as.numeric(labels)-1
+ts_label <- as.numeric(ts_label)-1
+
+
 
 # Convert data table into a matrix using xgb.DMatrix
 dtrain <- xgb.DMatrix(data = new_tr, label = labels) 
@@ -112,7 +115,7 @@ xgb1 <- xgb.train(params = params, data = dtrain, nrounds = 61,
                   print_every_n = 10, early_stop_round = 10, 
                   maximize = F, eval_metric = "error")
 
-# Model prediction
+# Model Prediction
 
 xgbpred <- predict (xgb1, dtest)
 xgbpred <- ifelse (xgbpred > 0.5, 1, 0)
